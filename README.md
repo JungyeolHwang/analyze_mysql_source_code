@@ -81,9 +81,9 @@ buf_pool_ptr은 전역 버퍼 풀 인스턴스 배열을 가리키는 포인터�
 
 ---------------------------------------------------------------------------------------------
 
-InnoDB 버퍼 풀 소스코드를 분석하면 다음과 같은 중요한 지식과 인사이트를 얻을 수 있습니다:
+## InnoDB 버퍼 풀 소스코드를 분석하면 다음과 같은 중요한 지식과 인사이트를 얻을 수 있습니다:
 
-메모리 관리 기법
+# 메모리 관리 기법
 
 
 대규모 메모리를 효율적으로 관리하는 방법 학습
@@ -92,7 +92,7 @@ LRU(Least Recently Used) 알고리즘 구현 방법
 메모리 할당/해제 최적화 기법
 
 
-동시성 제어
+# 동시성 제어
 
 
 Mutex, Lock을 사용한 멀티스레드 환경에서의 동시성 제어 방법
@@ -100,7 +100,7 @@ Mutex, Lock을 사용한 멀티스레드 환경에서의 동시성 제어 방법
 읽기/쓰기 락의 구현과 활용
 
 
-성능 최적화 기법
+# 성능 최적화 기법
 
 
 CPU affinity를 통한 캐시 활용 최적화
@@ -109,7 +109,7 @@ CPU affinity를 통한 캐시 활용 최적화
 더티 페이지 관리와 플러시 최적화
 
 
-대규모 시스템 설계
+# 대규모 시스템 설계
 
 
 모듈화된 코드 구조 설계 방법
@@ -118,7 +118,7 @@ CPU affinity를 통한 캐시 활용 최적화
 설정 가능한 파라미터를 통한 유연성 확보
 
 
-개발 프로세스
+# 개발 프로세스
 
 
 코드 주석 작성법
@@ -127,7 +127,7 @@ CPU affinity를 통한 캐시 활용 최적화
 성능 측정과 통계 수집
 
 
-프로그래밍 기법
+# 프로그래밍 기법
 
 
 C++ 템플릿 활용
@@ -147,7 +147,7 @@ STL 컨테이너 활용
 
 ---------------------------------------------------------------------------------------------------------
 
-메모리 관리 관련
+## 메모리 관리 관련 코드
 
  // 버퍼 풀의 메모리를 청크 단위로 할당
 buf_chunk_t *new_chunks = reinterpret_cast<buf_chunk_t *>(
@@ -157,14 +157,14 @@ buf_chunk_t *new_chunks = reinterpret_cast<buf_chunk_t *>(
 UT_LIST_INIT(buf_pool->LRU);
 UT_LIST_INIT(buf_pool->free);
 
-동시성 제어 관련
+## 동시성 제어 관련
 
  // 다양한 뮤텍스 초기화
 mutex_create(LATCH_ID_BUF_POOL_LRU_LIST, &buf_pool->LRU_list_mutex);
 mutex_create(LATCH_ID_BUF_POOL_FREE_LIST, &buf_pool->free_list_mutex);
 mutex_create(LATCH_ID_BUF_POOL_ZIP_FREE, &buf_pool->zip_free_mutex);
 
-CPU 최적화 관련
+## CPU 최적화 관련
 
  #ifdef UNIV_LINUX
   cpu_set_t cpuset;
@@ -172,7 +172,7 @@ CPU 최적화 관련
   const long n_cores = sysconf(_SC_NPROCESSORS_ONLN);
   CPU_SET(instance_no % n_cores, &cpuset);
 
-모니터링/통계 관련
+## 모니터링/통계 관련
 
  buf_pool->stat.reset();
 buf_pool->last_printout_time = std::chrono::steady_clock::now();
@@ -192,7 +192,7 @@ buf_pool->last_printout_time = std::chrono::steady_clock::now();
 
 
 ----------------------------------------------------------------------------------------------
-
+## 간단 코드 분석
 
 #ifdef UNIV_LINUX
   cpu_set_t cpuset;
@@ -256,7 +256,7 @@ CPU 자원을 우선적으로 할당받음
 
 ------------------------------------------------------------------------------------------
 
-CPU Affinity가 뭘까?
+## CPU Affinity가 뭘까?
 
 CPU Affinity는 프로세스나 스레드가 특정 CPU 코어에서만 실행되도록 지정하는 기능입니다.
 이해를 돕기 위해 예시를 들어보겠습니다:
@@ -402,6 +402,7 @@ Instance 8 -> CPU0
 
 ------------------------------------------------------------------------------
 
+## 락 관련 코드 분석
 
 // 다양한 뮤텍스 초기화
 mutex_create(LATCH_ID_BUF_POOL_LRU_LIST, &buf_pool->LRU_list_mutex);
@@ -435,7 +436,7 @@ mutex_create(LATCH_ID_BUF_POOL_ZIP_FREE, &buf_pool->zip_free_mutex);
 
 
 
-// 버퍼 풀의 주요 뮤텍스들과 그 역할
+## 버퍼 풀의 주요 뮤텍스들과 그 역할
 
 // 1. LRU 리스트 뮤텍스
 mutex_create(LATCH_ID_BUF_POOL_LRU_LIST, &buf_pool->LRU_list_mutex);
@@ -499,7 +500,7 @@ mutex_exit(&mutex);
 
 ------------------------------------------------------------------------------------------------------
 
-## 실제 코드 분석 
+## 청크 할당 코드 분석 
 
 
 // 청크 할당 코드
