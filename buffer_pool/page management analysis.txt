@@ -1,5 +1,124 @@
+/**
+ * 1. 페이지 초기화
+ * 버퍼풀에서 새로운 페이지를 초기화할 때의 핵심 로직
+ */
+static void buf_page_init(buf_pool_t *buf_pool, 
+                         const page_id_t &page_id,
+                         const page_size_t &page_size, 
+                         buf_block_t *block) {
+    // 해시 테이블에서 페이지 검색을 위한 잠금
+    ut_ad(rw_lock_own(buf_page_hash_lock_get(buf_pool, page_id), RW_LOCK_X));
+    
+    // 블록의 상태를 파일 페이지로 설정
+    buf_block_set_file_page(block, page_id);
+    
+    // 블록 초기화
+    buf_block_init_low(block);
+    
+    // 페이지 기본 정보 초기화 
+    buf_page_init_low(&block->page);
 
-아래 코드에서 볼 수 있는 버퍼풀의 페이지 관리의 주요 특징들은:
+    // 해시 테이블에 페이지 추가
+    HASH_INSERT(buf_page_t, hash, buf_pool->page_hash, page_id.hash(), &block->page);
+}
+
+/**
+ * 2. 페이지 읽기 요청 처리
+ * 디스크에서 페이지를 읽어올 때 사용되는 초기화 함수
+ */
+buf_page_t *buf_page_init_for_read(ulint mode, 
+                                  const page_id_t &page_id,
+                                  const page_size_t &page_size, 
+                                  bool unzip) {
+    // 새로운 블록 할당
+    buf_block_t *block = buf_LRU_get_free_block(buf_pool);
+    
+    // 압축된 페이지 처리
+    if (page_size.is_compressed()) {
+        data = buf_buddy_alloc(buf_pool, page_size.physical());
+    }
+    
+    // LRU 리스트 뮤텍스 획득
+    mutex_enter(&buf_pool->LRU_list_mutex);
+    
+    // IO 고정 설정 - 읽기 작업 중임을 표시
+    buf_page_set_io_fix(bpage, BUF_IO_READ);
+    
+    // LRU 리스트에 블록 추가 
+    buf_LRU_add_block(bpage, true);
+}
+
+/**
+ * 3. 페이지 상태 전이
+ * 페이지의 상태를 관리하는 주요 로직
+ */
+enum buf_page_state {
+    BUF_BLOCK_POOL_WATCH,     // 풀 감시용 더미 블록
+    BUF_BLOCK_ZIP_PAGE,       // 압축된 페이지
+    BUF_BLOCK_ZIP_DIRTY,      // 수정된 압축 페이지
+    BUF_BLOCK_FILE_PAGE,      // 일반 파일 페이지
+    BUF_BLOCK_NOT_USED,       // 미사용 블록
+    BUF_BLOCK_READY_FOR_USE,  // 사용 준비된 블록
+    BUF_BLOCK_MEMORY,         // 메모리 블록
+    BUF_BLOCK_REMOVE_HASH     // 해시에서 제거 예정
+};
+
+/**
+ * 4. IO 완료 처리
+ * 페이지 읽기/쓰기 작업 완료 후의 처리
+ */
+bool buf_page_io_complete(buf_page_t *bpage, bool evict) {
+    // IO 유형 확인 (읽기/쓰기)
+    const auto io_type = bpage->is_io_fix_read_as_opposed_to_write() 
+                        ? BUF_IO_READ : BUF_IO_WRITE;
+    
+    if (io_type == BUF_IO_READ) {
+        // 읽기 완료 처리
+        // 압축 페이지 처리
+        if (bpage->size.is_compressed()) {
+            buf_pool->n_pend_unzip.fetch_add(1);
+            if (!buf_zip_decompress((buf_block_t *)bpage, false)) {
+                // 압축 해제 실패 처리
+            }
+        }
+        
+        // 페이지 검증
+        if (compressed_page || is_corrupted) {
+            // 손상된 페이지 처리
+        }
+        
+    } else {
+        // 쓰기 완료 처리
+        buf_flush_write_complete(bpage);
+    }
+    
+    // IO 고정 해제
+    buf_page_set_io_fix(bpage, BUF_IO_NONE);
+}
+
+/**
+ * 5. LRU 리스트 관리
+ * 페이지의 LRU 상태 관리를 위한 핵심 구조체와 함수들
+ */
+struct LRU_list_operations {
+    // Young 영역과 Old 영역으로 구분된 LRU 리스트
+    void make_block_young(buf_page_t *bpage) {
+        // 페이지를 young 영역으로 이동
+    }
+    
+    void make_block_old(buf_page_t *bpage) {
+        // 페이지를 old 영역으로 이동
+    }
+    
+    // LRU 리스트에서 재사용 가능한 블록 찾기
+    buf_block_t *get_free_block() {
+        // 1. free 리스트에서 검색
+        // 2. LRU 리스트 끝에서 검색
+        // 3. 필요시 flush 수행
+    }
+};
+
+위 코드에서 볼 수 있는 버퍼풀의 페이지 관리의 주요 특징들은:
 
 # 페이지 상태 관리
 
